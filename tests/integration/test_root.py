@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from src.fastapi_template.main import app
+from src.refinery.main import app
 
 client = TestClient(app)
 

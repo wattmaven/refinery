@@ -1,10 +1,12 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi_template.settings import settings
+from refinery.routers import refine
+from refinery.settings import settings
 
 app = FastAPI(
-    title="FastAPI Template",
-    description="A template for a FastAPI project.",
+    title="WattMaven Refinery",
+    description="A service for refining documents.",
     version="0.0.0",
     servers=[
         server
@@ -14,16 +16,16 @@ app = FastAPI(
             if settings.python_env != "production"
             else None,
             {
-                "url": f"https://{settings.fastapi_template_domain}",
+                "url": f"https://{settings.refinery_domain}",
                 "description": "Production",
             },
         ]
         if server is not None
     ],
     license_info={
-        "name": "MIT",
-        "identifier": "MIT",
-        "url": "https://opensource.org/licenses/MIT",
+        "name": "Apache 2.0",
+        "identifier": "Apache-2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0",
     },
     contact={
         "name": "WattMaven",
@@ -31,8 +33,18 @@ app = FastAPI(
         "email": "info@wattmaven.com",
     },
 )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
 async def root():
     return {"status": "ok"}
+
+
+app.include_router(refine.router)

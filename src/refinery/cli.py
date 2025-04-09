@@ -9,7 +9,7 @@ import uvicorn
 def main(host: str, port: int, reload: bool):
     """Entry point for the application script."""
     uvicorn.run(
-        "fastapi_template.main:app",
+        "refinery.main:app",
         host=host,
         port=port,
         reload=reload,
