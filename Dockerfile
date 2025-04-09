@@ -14,4 +14,4 @@ RUN uv venv
 RUN . .venv/bin/activate && uv pip install --no-cache .
 
 # Run the application
-CMD ["/app/.venv/bin/uvicorn", "fastapi_template.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/.venv/bin/uvicorn", "refinery.main:app", "--host", "", "--port", "8000"]

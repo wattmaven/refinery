@@ -1,0 +1,36 @@
+meta {
+  name: Refine S3
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/refine/s3
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "bucket": "refinery-development",
+    "key": "lorem-ipsum.jpg",
+    "json_schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/document.schema.json",
+      "strict": true,
+      "title": "Document",
+      "description": "A document from Acme's catalog",
+      "type": "object",
+      "properties": {
+        "summary": {
+          "description": "A basic summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "summary"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

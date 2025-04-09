@@ -1,31 +1,38 @@
 [project]
-name = "fastapi-template"
+name = "refinery"
 dynamic = ["version"]
-license = { text = "MIT" }
+license = { text = "Apache 2.0" }
 classifiers = [
     "Private :: Do Not Upload",
 ]
-description = "A template for a FastAPI project"
+description = "A service for refining documents."
 readme = "README.md"
 authors = [
     { name = "Elijah Passmore", email = "elijah.passmore@wattmaven.com" }
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "boto3>=1.37.31",
     "click>=8.1.8",
     "fastapi>=0.115.11",
+    "jsonschema>=4.23.0",
+    "mistralai>=1.6.0",
+    "openai>=1.72.0",
     "pydantic>=2.10.6",
     "pydantic-settings>=2.8.1",
     "python-dotenv>=1.0.1",
+    "python-multipart>=0.0.20",
+    "sse-starlette>=2.2.1",
+    "structlog>=25.2.0",
     "uvicorn>=0.34.0",
 ]
 
 [project.urls]
 Homepage = "https://wattmaven.com"
-Source = "https://github.com/wattmaven/fastapi-template"
+Source = "https://github.com/wattmaven/refinery"
 
 [project.scripts]
-fastapi-template = "fastapi_template.cli:main"
+refinery = "refinery.cli:main"
 
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
@@ -39,6 +46,7 @@ dev = [
     "pytest>=8.3.4",
     "pytest-cov>=6.0.0",
     "ruff>=0.9.4",
+    "trio>=0.29.0",
 ]
 
 [tool.hatch.version]

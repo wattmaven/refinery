@@ -31,7 +31,7 @@ test: ## Run tests
 	$(PYTEST)
 
 dev: ## Run the application in development mode
-	fastapi-template --reload true
+	refinery --reload true
 
 pre-commit-tasks: ## Run pre-commit tasks
 	make lint-check format-check

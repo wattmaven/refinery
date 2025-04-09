@@ -1,0 +1,16 @@
+{
+  "$id": "https://example.com/document#",
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Document",
+  "type": "object",
+  "strict": true,
+  "description": "A document from Acme's catalog",
+  "properties": {
+    "summary": {
+      "description": "A basic summary",
+      "type": "string"
+    }
+  },
+  "required": ["summary"],
+  "additionalProperties": false
+}
