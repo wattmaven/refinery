@@ -1,0 +1,13 @@
+pre-commit:
+  parallel: true
+  commands:
+    secrets:
+      run: trufflehog git file://. --since-commit HEAD --only-verified --fail
+    pre-commit-tasks:
+      run: make pre-commit-tasks
+
+pre-push:
+  parallel: true
+  commands:
+    commit-check:
+      run: uv run cz check --rev-range HEAD~1..HEAD

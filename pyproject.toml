@@ -1,0 +1,77 @@
+[project]
+name = "fastapi-template"
+dynamic = ["version"]
+license = { text = "MIT" }
+classifiers = [
+    "Private :: Do Not Upload",
+]
+description = "A template for a FastAPI project"
+readme = "README.md"
+authors = [
+    { name = "Elijah Passmore", email = "elijah.passmore@wattmaven.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.1.8",
+    "fastapi>=0.115.11",
+    "pydantic>=2.10.6",
+    "pydantic-settings>=2.8.1",
+    "python-dotenv>=1.0.1",
+    "uvicorn>=0.34.0",
+]
+
+[project.urls]
+Homepage = "https://wattmaven.com"
+Source = "https://github.com/wattmaven/fastapi-template"
+
+[project.scripts]
+fastapi-template = "fastapi_template.cli:main"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.1.1",
+    "httpx>=0.28.1",
+    "lefthook>=1.10.10",
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.9.4",
+]
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { local_scheme = "no-local-version" }
+
+[tool.ruff.lint]
+# See https://docs.astral.sh/ruff/rules
+select = [
+    "I",
+    "N801",
+    "N802",
+    "N803",
+    "N804",
+    "N805",
+    "N806",
+    "N807",
+    "N811",
+    "N812",
+    "N813",
+    "N814",
+    "N815",
+    "N816",
+    "N817",
+    "N818",
+    "N999",
+    "FAST001",
+    "FAST002",
+    "FAST003",
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+update_changelog_on_bump = true
