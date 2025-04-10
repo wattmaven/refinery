@@ -78,4 +78,13 @@ REFINERY_S3_ACCESS_KEY_ID=
 REFINERY_S3_SECRET_ACCESS_KEY=
 ```
 
-See [./env.example](./env.example) for more details.
+See [.env.example](./.env.example) for more details.
+
+## Test Data
+
+The [testdata](./testdata) directory contains a collection of documents that can be used to test the application.
+
+### Sources
+
+- [lorem-ipsum.jpg](./testdata/lorem-ipsum.jpg): A simple image of lorem ipsum text.
+  [Source](https://commons.wikimedia.org/wiki/File:Test_OCR_document.jpg) CC0 1.0.
