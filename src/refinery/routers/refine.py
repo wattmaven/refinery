@@ -41,7 +41,7 @@ class Refined(BaseModel):
     error: str | None = Field(None, description="Error if processing failed")
 
 
-class RefineUrlsRequest(BaseModel):
+class RefineUrlRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     url: str = Field(
         ...,
@@ -78,7 +78,7 @@ class RefinedUrlResponse(Refined):
     description="Refine a publicly accessible remote URL.",
     response_model=RefinedUrlResponse,
 )
-async def refine_url(request: RefineUrlsRequest):
+async def refine_url(request: RefineUrlRequest):
     try:
         processed = await process_url(request.url)
         output = await get_structured_output(
@@ -103,7 +103,7 @@ async def refine_url(request: RefineUrlsRequest):
         )
 
 
-class RefinedFileResponse(Refined):
+class RefinedUploadResponse(Refined):
     filename: str = Field(
         ...,
         description="The filename of the file that was refined",
@@ -114,7 +114,7 @@ class RefinedFileResponse(Refined):
     "/upload",
     summary="Refine an uploaded file",
     description="Refine an uploaded file.",
-    response_model=RefinedFileResponse,
+    response_model=RefinedUploadResponse,
 )
 async def refine_file(
     background_tasks: BackgroundTasks,
@@ -139,14 +139,14 @@ async def refine_file(
             context=context,
         )
 
-        return RefinedFileResponse(
+        return RefinedUploadResponse(
             filename=file.filename,
             json_schema=loaded_json_schema,
             output=output,
             context=context,
         )
     except Exception as e:
-        return RefinedFileResponse(
+        return RefinedUploadResponse(
             filename=file.filename,
             json_schema=loaded_json_schema,
             output={},
