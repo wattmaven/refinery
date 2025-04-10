@@ -88,3 +88,5 @@ The [testdata](./testdata) directory contains a collection of documents that can
 
 - [lorem-ipsum.jpg](./testdata/lorem-ipsum.jpg): A simple image of lorem ipsum text.
   [Source](https://commons.wikimedia.org/wiki/File:Test_OCR_document.jpg) CC0 1.0.
+- [slavery-in-the-united-states.pdf](./testdata/slavery-in-the-united-states.pdf): A simple image of text that is of variable quality.
+  [Source](https://commons.wikimedia.org/wiki/File:Test_OCR_document_2.jpg) Public Domain.
