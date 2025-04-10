@@ -79,7 +79,6 @@ To enable this, set the following environment variables:
 
 ```bash
 REFINERY_S3_ENDPOINT_URL=
-REFINERY_S3_BUCKET=
 REFINERY_S3_ACCESS_KEY_ID=
 REFINERY_S3_SECRET_ACCESS_KEY=
 ```

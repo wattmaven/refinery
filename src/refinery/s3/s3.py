@@ -1,4 +1,5 @@
 import boto3
+from botocore.config import Config
 
 from refinery.settings import settings
 
@@ -14,21 +15,25 @@ def create_s3_client():
         endpoint_url=settings.refinery_s3_endpoint_url,
         aws_access_key_id=settings.refinery_s3_access_key_id,
         aws_secret_access_key=settings.refinery_s3_secret_access_key,
+        config=Config(signature_version="s3v4"),
     )
 
 
-async def get_object(bucket: str, key: str):
+async def get_object_presigned_url(bucket: str, key: str):
     """
-    Get an object from S3.
+    Get a presigned URL for an object from S3.
 
     Args:
         bucket: The name of the bucket to get the object from.
         key: The key of the object to get.
 
     Returns:
-        The object from S3.
+        The presigned URL for the object.
     """
     s3 = create_s3_client()
-    object = s3.get_object(Bucket=bucket, Key=key)
-    print(object)
-    return object
+    return s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": bucket, "Key": key},
+        # Only need for 5 minutes
+        ExpiresIn=60 * 5,
+    )

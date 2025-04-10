@@ -14,7 +14,6 @@ class Settings(BaseSettings):
     mistral_api_key: str
     openai_api_key: str
     refinery_s3_endpoint_url: str | None = None
-    refinery_s3_bucket: str | None = None
     refinery_s3_access_key_id: str | None = None
     refinery_s3_secret_access_key: str | None = None
 

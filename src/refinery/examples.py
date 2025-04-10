@@ -16,5 +16,7 @@ example_json_schema_dict = {
     "description": "A document from Acme's catalog",
     "type": "object",
     "properties": {"summary": {"description": "A basic summary", "type": "string"}},
+    "required": ["summary"],
+    "additionalProperties": False,
 }
 example_json_schema_str = json.dumps(example_json_schema_dict)

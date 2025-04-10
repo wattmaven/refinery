@@ -1,7 +1,7 @@
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from refinery.examples import (
@@ -10,6 +10,8 @@ from refinery.examples import (
     example_json_schema_dict,
 )
 from refinery.ocr.ocr import delete_file, process_file, process_url
+from refinery.s3.s3 import get_object_presigned_url
+from refinery.settings import settings
 from refinery.structured_output.structured_output import get_structured_output
 from refinery.validators.json_schema import (
     is_json_schema_draft_7,
@@ -149,5 +151,80 @@ async def refine_file(
             json_schema=loaded_json_schema,
             output={},
             context=context,
+            error=str(e),
+        )
+
+
+class RefineS3Request(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    bucket: str = Field(
+        ...,
+        description="The bucket of the S3 object to refine",
+    )
+    key: str = Field(
+        ...,
+        description="The key of the S3 object to refine",
+    )
+    json_schema: Annotated[dict, AfterValidator(is_json_schema_draft_7)] = Field(
+        ...,
+        description="The Draft 7 JSON schema to use for the structured output",
+        examples=[example_json_schema_dict],
+    )
+    context: str = Field(
+        None, description="The context to use for the structured output"
+    )
+
+
+class RefinedS3Response(Refined):
+    bucket: str = Field(
+        ...,
+        description="The bucket of the S3 object that was refined",
+    )
+    key: str = Field(
+        ...,
+        description="The key of the S3 object that was refined",
+    )
+
+
+@router.post(
+    "/s3",
+    summary="Refine an S3 object",
+    description="Refine an S3 object.",
+    response_model=RefinedS3Response,
+)
+async def refine_s3(request: RefineS3Request):
+    # Check that the S3 configuration is set
+    if (
+        settings.refinery_s3_endpoint_url is None
+        or settings.refinery_s3_access_key_id is None
+        or settings.refinery_s3_secret_access_key is None
+    ):
+        raise HTTPException(status_code=500, detail="S3 is not configured")
+
+    try:
+        # Get a presigned URL for the S3 object
+        presigned_url = await get_object_presigned_url(request.bucket, request.key)
+        print(presigned_url)
+        processed = await process_url(presigned_url)
+        output = await get_structured_output(
+            request.json_schema,
+            processed.combined_markdown,
+            context=request.context,
+        )
+
+        return RefinedS3Response(
+            bucket=request.bucket,
+            key=request.key,
+            json_schema=request.json_schema,
+            output=output,
+            context=request.context,
+        )
+    except Exception as e:
+        return RefinedS3Response(
+            bucket=request.bucket,
+            key=request.key,
+            json_schema=request.json_schema,
+            output={},
+            context=request.context,
             error=str(e),
         )
