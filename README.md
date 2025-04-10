@@ -31,6 +31,12 @@ make dev
 This service is a FastAPI application that provides a REST API for refining documents into either Markdown or JSON
 (given a JSON schema).
 
+This service currently doesn't implement:
+
+- Auth
+- Rate limiting
+- CORS
+
 ### Refining documents
 
 Documents can be refined by uploading them directly or by providing a URL to a file hosted on S3.

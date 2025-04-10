@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from mimetypes import guess_type
 
+from fastapi import UploadFile
+
 from refinery.ocr.mistral import client
 
 
@@ -108,3 +110,36 @@ async def process_url(url: str) -> OCREvaluation:
         )
     else:
         raise ValueError("URL does not point to a valid document or image")
+
+
+async def process_file(file: UploadFile) -> tuple[OCREvaluation, str]:
+    """
+    Process a file and return the OCR response.
+
+    Args:
+        file: The file to process.
+
+    Returns:
+        A tuple of the OCR evaluation and the uploaded file ID.
+    """
+    # Upload the file
+    uploaded_file_response = await client.files.upload_async(
+        file={
+            "file_name": file.filename,
+            "content": file.file.read(),
+        },
+        purpose="ocr",
+    )
+
+    # Get a signed URL for the file
+    signed_url_response = client.files.get_signed_url(file_id=uploaded_file_response.id)
+    processed = await process_url(signed_url_response.url)
+
+    return processed, uploaded_file_response.id
+
+
+async def delete_file(file_id: str):
+    """
+    Delete a file from the API.
+    """
+    await client.files.delete(file_id=file_id)

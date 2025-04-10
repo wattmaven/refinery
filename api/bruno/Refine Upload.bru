@@ -1,0 +1,16 @@
+meta {
+  name: Refine Upload
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/refine/upload
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  files: @file(/home/eljpsm/Documents/lorem-ipsum.jpg)
+  json_schema: "{\n    \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n    \"$id\": \"https://example.com/document.schema.json\",\n    \"strict\": true,\n    \"title\": \"Document\",\n    \"description\": \"A document from Acme's catalog\",\n    \"type\": \"object\",\n    \"properties\": {\n      \"summary\": {\n        \"description\": \"A basic summary\",\n        \"type\": \"string\"\n      }\n    },\n    \"required\": [\n      \"summary\"\n    ],\n    \"additionalProperties\": false\n  }"
+}
