@@ -119,12 +119,14 @@ class RefinedUploadResponse(Refined):
     response_model=RefinedUploadResponse,
 )
 async def refine_file(
-    background_tasks: BackgroundTasks,
     file: Annotated[UploadFile, File(description="A file read as UploadFile")],
     json_schema: Annotated[
         str,
         AfterValidator(is_json_schema_draft_7_string),
-        Form(description="JSON schema for structured output"),
+        Form(
+            description="JSON schema for structured output",
+            examples=[example_json_schema_str],
+        ),
     ],
     context: Annotated[
         str | None, Form(description="The context to use for the structured output")
@@ -132,10 +134,7 @@ async def refine_file(
 ):
     loaded_json_schema = json.loads(json_schema)
 
-    processed, mistral_file_id = await process_file(file)
-    # Delete the file from Mistral after the request is processed
-    background_tasks.add_task(delete_file, mistral_file_id)
-
+    processed = await process_file(file)
     output = await get_structured_output(
         loaded_json_schema,
         processed.combined_markdown,

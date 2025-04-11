@@ -13,6 +13,7 @@ class SupportedDocumentContentTypes(Enum):
     """
 
     PDF = "application/pdf"
+    ODT = "application/vnd.oasis.opendocument.text"
 
 
 class SupportedImageContentTypes(Enum):
@@ -74,7 +75,7 @@ async def process_url(url: str) -> OCREvaluation:
         A list of evaluations.
     """
     type, _ = guess_type(url)
-    if type == SupportedDocumentContentTypes.PDF:
+    if type in SupportedDocumentContentTypes:
         # Process as a document
         response = client.ocr.process(
             model="mistral-ocr-latest",
@@ -112,7 +113,7 @@ async def process_url(url: str) -> OCREvaluation:
         raise ValueError("URL does not point to a valid document or image")
 
 
-async def process_file(file: UploadFile) -> tuple[OCREvaluation, str]:
+async def process_file(file: UploadFile) -> OCREvaluation:
     """
     Process a file and return the OCR response.
 
@@ -120,7 +121,7 @@ async def process_file(file: UploadFile) -> tuple[OCREvaluation, str]:
         file: The file to process.
 
     Returns:
-        A tuple of the OCR evaluation and the uploaded file ID.
+        The OCR evaluation.
     """
     # Upload the file
     uploaded_file_response = await client.files.upload_async(
@@ -133,9 +134,13 @@ async def process_file(file: UploadFile) -> tuple[OCREvaluation, str]:
 
     # Get a signed URL for the file
     signed_url_response = client.files.get_signed_url(file_id=uploaded_file_response.id)
+    print("processing")
     processed = await process_url(signed_url_response.url)
+    print("deleting")
+    await client.files.delete_async(file_id=uploaded_file_response.id)
+    print("done")
 
-    return processed, uploaded_file_response.id
+    return processed
 
 
 async def delete_file(file_id: str):
