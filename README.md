@@ -28,8 +28,8 @@ make dev
 
 ## Overview
 
-This service is a FastAPI application that provides a REST API for refining documents into either Markdown or JSON
-(given a JSON schema).
+This service is a FastAPI application that provides a REST API for refining documents into a JSON object matching a
+given JSON schema.
 
 ### Refining documents
 
@@ -89,3 +89,5 @@ The [testdata](./testdata) directory contains a collection of documents that can
   [Source](https://commons.wikimedia.org/wiki/File:Test_OCR_document.jpg) CC0 1.0.
 - [slavery-in-the-united-states.pdf](./testdata/slavery-in-the-united-states.pdf): A simple image of text that is of variable quality.
   [Source](https://commons.wikimedia.org/wiki/File:Test_OCR_document_2.jpg) Public Domain.
+- [the-quick-brown-fox-jumps-over-the-lazy-dog.odt](./testdata/the-quick-brown-fox-jumps-over-the-lazy-dog.odt): A simple ODT containing placeholder text.
+- [the-quick-brown-fox-jumps-over-the-lazy-dog.pdf](./testdata/the-quick-brown-fox-jumps-over-the-lazy-dog.pdf): A simple PDF containing placeholder text.
