@@ -32,8 +32,8 @@ example_json_schema_dict = {
 example_json_schema_str = json.dumps(example_json_schema_dict)
 example_image_url_lorem_ipsum = "https://raw.githubusercontent.com/wattmaven/refinery/refs/heads/feat/basic-setup/testdata/lorem-ipsum.jpg"
 example_image_url_slavery_in_the_united_states = "https://raw.githubusercontent.com/wattmaven/refinery/refs/heads/feat/basic-setup/testdata/slavery-in-the-united-states.jpg"
-example_s3_bucket = "refinery-test"
-example_s3_key = "test.txt"
+example_s3_bucket = "refinery-development"
+example_s3_key = "lorem-ipsum.jpg"
 
 
 class Refined(BaseModel):
