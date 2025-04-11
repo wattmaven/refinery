@@ -4,11 +4,6 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
-from refinery.examples import (
-    example_image_url_lorem_ipsum,
-    example_image_url_slavery_in_the_united_states,
-    example_json_schema_dict,
-)
 from refinery.ocr.ocr import delete_file, process_file, process_url
 from refinery.s3.s3 import get_object_presigned_url
 from refinery.settings import settings
@@ -22,6 +17,23 @@ router = APIRouter(
     prefix="/refine",
     tags=["refine"],
 )
+
+example_json_schema_dict = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/document.schema.json",
+    "strict": True,
+    "title": "Document",
+    "description": "A document from Acme's catalog",
+    "type": "object",
+    "properties": {"summary": {"description": "A basic summary", "type": "string"}},
+    "required": ["summary"],
+    "additionalProperties": False,
+}
+example_json_schema_str = json.dumps(example_json_schema_dict)
+example_image_url_lorem_ipsum = "https://raw.githubusercontent.com/wattmaven/refinery/refs/heads/feat/basic-setup/testdata/lorem-ipsum.jpg"
+example_image_url_slavery_in_the_united_states = "https://raw.githubusercontent.com/wattmaven/refinery/refs/heads/feat/basic-setup/testdata/slavery-in-the-united-states.jpg"
+example_s3_bucket = "refinery-test"
+example_s3_key = "test.txt"
 
 
 class Refined(BaseModel):
@@ -38,7 +50,6 @@ class Refined(BaseModel):
     context: str | None = Field(
         None, description="The context that was used to refine the document"
     )
-    error: str | None = Field(None, description="Error if processing failed")
 
 
 class RefineUrlRequest(BaseModel):
@@ -79,28 +90,19 @@ class RefinedUrlResponse(Refined):
     response_model=RefinedUrlResponse,
 )
 async def refine_url(request: RefineUrlRequest):
-    try:
-        processed = await process_url(request.url)
-        output = await get_structured_output(
-            request.json_schema,
-            processed.combined_markdown,
-            context=request.context,
-        )
+    processed = await process_url(request.url)
+    output = await get_structured_output(
+        request.json_schema,
+        processed.combined_markdown,
+        context=request.context,
+    )
 
-        return RefinedUrlResponse(
-            url=request.url,
-            json_schema=request.json_schema,
-            output=output,
-            context=request.context,
-        )
-    except Exception as e:
-        return RefinedUrlResponse(
-            url=request.url,
-            json_schema=request.json_schema,
-            output={},
-            context=request.context,
-            error=str(e),
-        )
+    return RefinedUrlResponse(
+        url=request.url,
+        json_schema=request.json_schema,
+        output=output,
+        context=request.context,
+    )
 
 
 class RefinedUploadResponse(Refined):
@@ -124,35 +126,28 @@ async def refine_file(
         AfterValidator(is_json_schema_draft_7_string),
         Form(description="JSON schema for structured output"),
     ],
-    context: Annotated[str | None, Form(description="Optional context")] = None,
+    context: Annotated[
+        str | None, Form(description="The context to use for the structured output")
+    ] = None,
 ):
-    try:
-        loaded_json_schema = json.loads(json_schema)
+    loaded_json_schema = json.loads(json_schema)
 
-        processed, mistral_file_id = await process_file(file)
-        # Delete the file from Mistral after the request is processed
-        background_tasks.add_task(delete_file, mistral_file_id)
+    processed, mistral_file_id = await process_file(file)
+    # Delete the file from Mistral after the request is processed
+    background_tasks.add_task(delete_file, mistral_file_id)
 
-        output = await get_structured_output(
-            loaded_json_schema,
-            processed.combined_markdown,
-            context=context,
-        )
+    output = await get_structured_output(
+        loaded_json_schema,
+        processed.combined_markdown,
+        context=context,
+    )
 
-        return RefinedUploadResponse(
-            filename=file.filename,
-            json_schema=loaded_json_schema,
-            output=output,
-            context=context,
-        )
-    except Exception as e:
-        return RefinedUploadResponse(
-            filename=file.filename,
-            json_schema=loaded_json_schema,
-            output={},
-            context=context,
-            error=str(e),
-        )
+    return RefinedUploadResponse(
+        filename=file.filename,
+        json_schema=loaded_json_schema,
+        output=output,
+        context=context,
+    )
 
 
 class RefineS3Request(BaseModel):
@@ -160,17 +155,19 @@ class RefineS3Request(BaseModel):
     bucket: str = Field(
         ...,
         description="The bucket of the S3 object to refine",
+        examples=[example_s3_bucket],
     )
     key: str = Field(
         ...,
         description="The key of the S3 object to refine",
+        examples=[example_s3_key],
     )
     json_schema: Annotated[dict, AfterValidator(is_json_schema_draft_7)] = Field(
         ...,
         description="The Draft 7 JSON schema to use for the structured output",
         examples=[example_json_schema_dict],
     )
-    context: str = Field(
+    context: str | None = Field(
         None, description="The context to use for the structured output"
     )
 
@@ -179,10 +176,12 @@ class RefinedS3Response(Refined):
     bucket: str = Field(
         ...,
         description="The bucket of the S3 object that was refined",
+        examples=[example_s3_bucket],
     )
     key: str = Field(
         ...,
         description="The key of the S3 object that was refined",
+        examples=[example_s3_key],
     )
 
 
@@ -201,30 +200,19 @@ async def refine_s3(request: RefineS3Request):
     ):
         raise HTTPException(status_code=500, detail="S3 is not configured")
 
-    try:
-        # Get a presigned URL for the S3 object
-        presigned_url = await get_object_presigned_url(request.bucket, request.key)
-        print(presigned_url)
-        processed = await process_url(presigned_url)
-        output = await get_structured_output(
-            request.json_schema,
-            processed.combined_markdown,
-            context=request.context,
-        )
+    # Get a presigned URL for the S3 object
+    presigned_url = await get_object_presigned_url(request.bucket, request.key)
+    processed = await process_url(presigned_url)
+    output = await get_structured_output(
+        request.json_schema,
+        processed.combined_markdown,
+        context=request.context,
+    )
 
-        return RefinedS3Response(
-            bucket=request.bucket,
-            key=request.key,
-            json_schema=request.json_schema,
-            output=output,
-            context=request.context,
-        )
-    except Exception as e:
-        return RefinedS3Response(
-            bucket=request.bucket,
-            key=request.key,
-            json_schema=request.json_schema,
-            output={},
-            context=request.context,
-            error=str(e),
-        )
+    return RefinedS3Response(
+        bucket=request.bucket,
+        key=request.key,
+        json_schema=request.json_schema,
+        output=output,
+        context=request.context,
+    )

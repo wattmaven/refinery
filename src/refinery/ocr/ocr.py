@@ -138,8 +138,8 @@ async def process_file(file: UploadFile) -> tuple[OCREvaluation, str]:
     return processed, uploaded_file_response.id
 
 
-def delete_file(file_id: str):
+async def delete_file(file_id: str):
     """
     Delete a file from the API.
     """
-    client.files.delete(file_id=file_id)
+    await client.files.delete_async(file_id=file_id)
