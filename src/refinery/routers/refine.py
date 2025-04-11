@@ -56,7 +56,7 @@ class RefineUrlRequest(BaseModel):
         description="The Draft 7 JSON schema to use for the structured output",
         examples=[example_json_schema_dict],
     )
-    context: str = Field(
+    context: str | None = Field(
         None, description="The context to use for the structured output"
     )
 
@@ -124,7 +124,7 @@ async def refine_file(
         AfterValidator(is_json_schema_draft_7_string),
         Form(description="JSON schema for structured output"),
     ],
-    context: Annotated[str, Form(description="Optional context")] = None,
+    context: Annotated[str | None, Form(description="Optional context")] = None,
 ):
     try:
         loaded_json_schema = json.loads(json_schema)
@@ -193,7 +193,7 @@ class RefinedS3Response(Refined):
     response_model=RefinedS3Response,
 )
 async def refine_s3(request: RefineS3Request):
-    # Check that the S3 configuration is set
+    # Check that the S3 configuration is set.
     if (
         settings.refinery_s3_endpoint_url is None
         or settings.refinery_s3_access_key_id is None

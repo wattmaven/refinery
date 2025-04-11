@@ -10,18 +10,11 @@ You are a helpful assistant that can parse text into a JSON object.
 Extract the JSON object from the text you are given.
 """
 
-DEFAULT_CONTEXT_PROMPT = """
-Here is some context that may be relevant to the text you are given:
-
-{context}
-"""
-
 
 async def get_structured_output(
     json_schema: dict,
     text: str,
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
-    context_prompt: str = DEFAULT_CONTEXT_PROMPT,
     context: str | None = None,
 ) -> dict:
     """
@@ -35,15 +28,22 @@ async def get_structured_output(
     Returns:
         The structured output.
     """
+    # If context is provided, add it to the system prompt.
+    if context:
+        system_prompt += (
+            "\n\n"
+            + """
+        Here is some context that may be relevant to the text you are given:
+
+        {context}
+        """.format(context=context)
+        )
+
     try:
         response = client.responses.create(
             model="gpt-4o-mini",
             input=[
                 {"role": "system", "content": system_prompt},
-                # Add the context prompt if it is provided
-                # {"role": "system", "content": context_prompt.format(context=context)}
-                # if context
-                # else None,
                 {"role": "user", "content": text},
             ],
             text={
