@@ -17,6 +17,8 @@ class SupportedDocumentContentTypes(Enum):
     """
 
     PDF = "application/pdf"
+    PPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ODT = "application/vnd.oasis.opendocument.text"
 
 
@@ -29,6 +31,7 @@ class SupportedImageContentTypes(Enum):
     PNG = "image/png"
     GIF = "image/gif"
     WEBP = "image/webp"
+    AVIF = "image/avif"
 
 
 class MistralOcrProcessor(OcrProcessor):
@@ -96,6 +99,8 @@ class MistralOcrProcessor(OcrProcessor):
             file_id=uploaded_file_response.id
         )
         processed = self.process_url(signed_url_response.url)
+
+        # Delete the file
         self.mistral_client.files.delete_async(file_id=uploaded_file_response.id)
 
         return processed
