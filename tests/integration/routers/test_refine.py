@@ -158,7 +158,7 @@ async def test_refine_s3_image():
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         body = RefineS3Request(
-            bucket="refinery-development",
+            bucket="refinery",
             key="lorem-ipsum.jpg",
             json_schema=test_json_schema,
         )
@@ -184,7 +184,7 @@ async def test_refine_s3_image_with_context():
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         body = RefineS3Request(
-            bucket="refinery-development",
+            bucket="refinery",
             key="lorem-ipsum.jpg",
             json_schema=test_json_schema,
             context="Limit your response to only one word to describe the emotion.",

@@ -43,8 +43,11 @@ make ci-smoke-test
 
 ### Key Directories
 - `src/refinery/features/`: Business logic modules
+  - `confidence/`: Confidence calculation
+  - `ocr/`: OCR processing
   - `presigned_url/`: S3 presigned URL generation
-  - `refinement/`: OCR and LLM processors
+  - `structured_output/`: Structured output
+  - `summarization/`: Summarization
 - `src/refinery/routers/`: FastAPI route handlers
 - `tests/`: Unit and integration tests
 

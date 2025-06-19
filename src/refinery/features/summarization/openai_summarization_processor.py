@@ -1,6 +1,8 @@
 from openai import BadRequestError, OpenAI
 
-from refinery.features.refinement.summarization_processor import SummarizationProcessor
+from refinery.features.summarization.summarization_processor import (
+    SummarizationProcessor,
+)
 
 
 class OpenAISummarizationProcessor(SummarizationProcessor):

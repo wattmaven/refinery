@@ -3,7 +3,7 @@ from mimetypes import guess_type
 
 from mistralai import Mistral
 
-from refinery.features.refinement.ocr_processor import (
+from refinery.features.ocr.ocr_processor import (
     File,
     OCRPageResult,
     OcrProcessor,
@@ -101,6 +101,7 @@ class MistralOcrProcessor(OcrProcessor):
         processed = self.process_url(signed_url_response.url)
 
         # Delete the file
+        # Note that we don't await this as it's not critical to the processing
         self.mistral_client.files.delete_async(file_id=uploaded_file_response.id)
 
         return processed

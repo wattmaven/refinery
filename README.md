@@ -79,7 +79,11 @@ REFINERY_S3_SECRET_ACCESS_KEY=
 
 See [.env.example](./.env.example) for more details.
 
-## Test Data
+## Tests
+
+Note that to run tests you **must provide all credentials** to accurately test integrations.
+
+### Test Data
 
 The [testdata](./testdata) directory contains a collection of documents that can be used to test the application.
 

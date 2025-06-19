@@ -2,7 +2,7 @@ import json
 
 from openai import BadRequestError, OpenAI
 
-from refinery.features.refinement.structured_output_processor import (
+from refinery.features.structured_output.structured_output_processor import (
     ContextPrompt,
     StructuredOutputProcessor,
 )

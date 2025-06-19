@@ -34,8 +34,8 @@ app = FastAPI(
     },
     contact={
         "name": "WattMaven",
-        "url": "https://www.wattmaven.com",
-        "email": "info@wattmaven.com",
+        "url": "https://wattmaven.com",
+        "email": "support@wattmaven.com",
     },
 )
 app.add_middleware(CorrelationMiddleware)

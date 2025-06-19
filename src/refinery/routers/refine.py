@@ -8,21 +8,28 @@ from mistralai import Mistral
 from openai import OpenAI
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
+from refinery.features.confidence.confidence_calculator import ConfidenceCalculator
+from refinery.features.ocr.mistral_ocr_processor import MistralOcrProcessor
+from refinery.features.ocr.ocr_processor import OcrProcessor
 from refinery.features.presigned_url.s3_presigned_url_generator import (
     S3PresignedUrlGenerator,
 )
-from refinery.features.refinement.mistral_ocr_processor import MistralOcrProcessor
-from refinery.features.refinement.ocr_processor import OcrProcessor
-from refinery.features.refinement.openai_structured_output_processor import (
+from refinery.features.structured_output.openai_structured_output_processor import (
     OpenAIStructuredOutputProcessor,
 )
-from refinery.features.refinement.openai_summarization_processor import (
-    OpenAISummarizationProcessor,
+from refinery.features.structured_output.openai_structured_output_with_confidence import (
+    OpenAIStructuredOutputWithConfidenceProcessor,
 )
-from refinery.features.refinement.structured_output_processor import (
+from refinery.features.structured_output.structured_output_processor import (
+    ContextPrompt,
     StructuredOutputProcessor,
 )
-from refinery.features.refinement.summarization_processor import SummarizationProcessor
+from refinery.features.summarization.openai_summarization_processor import (
+    OpenAISummarizationProcessor,
+)
+from refinery.features.summarization.summarization_processor import (
+    SummarizationProcessor,
+)
 from refinery.logger import logger
 from refinery.settings import settings
 from refinery.validators.json_schema import (
@@ -49,7 +56,7 @@ _example_json_schema_url = "https://raw.githubusercontent.com/wattmaven/refinery
 _example_image_url_lorem_ipsum = "https://raw.githubusercontent.com/wattmaven/refinery/refs/heads/feat/basic-setup/testdata/lorem-ipsum.jpg"
 _example_image_url_slavery_in_the_united_states = "https://raw.githubusercontent.com/wattmaven/refinery/refs/heads/feat/basic-setup/testdata/slavery-in-the-united-states.jpg"
 # Example S3 objects
-_example_s3_bucket = "refinery-development"
+_example_s3_bucket = "refinery"
 _example_s3_key = "lorem-ipsum.jpg"
 
 router = APIRouter(
@@ -71,6 +78,12 @@ class CommonRefinementDependencies:
     summarization_processor: SummarizationProcessor
     # The structured output processor to use for the refinement.
     structured_output_processor: StructuredOutputProcessor
+    # The structured output processor with confidence scoring.
+    structured_output_with_confidence_processor: (
+        OpenAIStructuredOutputWithConfidenceProcessor
+    )
+    # The confidence calculator.
+    confidence_calculator: ConfidenceCalculator
 
     def __init__(self):
         self.ocr_processor = MistralOcrProcessor(
@@ -88,6 +101,47 @@ class CommonRefinementDependencies:
                 api_key=settings.openai_api_key,
             )
         )
+        self.structured_output_with_confidence_processor = (
+            OpenAIStructuredOutputWithConfidenceProcessor(
+                openai_client=OpenAI(
+                    api_key=settings.openai_api_key,
+                )
+            )
+        )
+        self.confidence_calculator = ConfidenceCalculator()
+
+
+class ConfidenceScores(BaseModel):
+    """Confidence scores for the refinement process."""
+
+    overall: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Overall confidence score for the entire refinement (0-1)",
+    )
+    ocr: float | None = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for OCR text extraction quality (0-1)",
+    )
+    summarization: float | None = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for summarization accuracy (0-1)",
+    )
+    schema_matching: float | None = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for schema field matching (0-1)",
+    )
+    field_scores: dict[str, float] | None = Field(
+        None,
+        description="Individual confidence scores for each field in the output",
+    )
 
 
 class Refined(BaseModel):
@@ -108,6 +162,9 @@ class Refined(BaseModel):
     output: dict = Field(..., description="The output of the refined document")
     context: str | None = Field(
         None, description="The context that was used to refine the document"
+    )
+    confidence: ConfidenceScores | None = Field(
+        None, description="Confidence scores for the refinement process"
     )
 
 
@@ -164,24 +221,56 @@ async def refine_url(
     )
     logger.info("Summary", summary=summary)
 
-    output = refinement_dependencies.structured_output_processor.process(
+    # Use the confidence-aware processor
+    context_prompt = ContextPrompt(context=request.context) if request.context else None
+    result = refinement_dependencies.structured_output_with_confidence_processor.process_with_confidence(
         request.json_schema,
         summary,
-        context=request.context,
+        context=context_prompt,
     )
+
+    # Calculate confidence scores
+    ocr_confidence = (
+        refinement_dependencies.confidence_calculator.estimate_ocr_confidence(
+            len(processed.combined_markdown), len(processed.pages)
+        )
+    )
+    summarization_confidence = (
+        refinement_dependencies.confidence_calculator.estimate_summarization_confidence(
+            len(processed.combined_markdown), len(summary)
+        )
+    )
+    overall_confidence = (
+        refinement_dependencies.confidence_calculator.calculate_overall_confidence(
+            ocr_confidence=ocr_confidence,
+            summarization_confidence=summarization_confidence,
+            schema_matching_confidence=result.schema_matching_confidence,
+        )
+    )
+
+    confidence_scores = ConfidenceScores(
+        overall=overall_confidence,
+        ocr=ocr_confidence,
+        summarization=summarization_confidence,
+        schema_matching=result.schema_matching_confidence,
+        field_scores=result.field_scores,
+    )
+
     logger.info(
-        "Output",
+        "Output with confidence",
         json_schema=request.json_schema,
-        output=output,
+        output=result.output,
         context=request.context,
+        confidence=confidence_scores.model_dump(),
     )
 
     return RefinedUrlResponse(
         url=request.url,
         summary=summary,
         json_schema=request.json_schema,
-        output=output,
+        output=result.output,
         context=request.context,
+        confidence=confidence_scores,
     )
 
 
@@ -226,25 +315,56 @@ async def refine_file(
     )
     logger.info("Summary", summary=summary)
 
-    output = refinement_dependencies.structured_output_processor.process(
+    # Use the confidence-aware processor
+    context_prompt = ContextPrompt(context=context) if context else None
+    result = refinement_dependencies.structured_output_with_confidence_processor.process_with_confidence(
         loaded_json_schema,
         summary,
-        context=context,
+        context=context_prompt,
     )
+
+    # Calculate confidence scores
+    ocr_confidence = (
+        refinement_dependencies.confidence_calculator.estimate_ocr_confidence(
+            len(processed.combined_markdown), len(processed.pages)
+        )
+    )
+    summarization_confidence = (
+        refinement_dependencies.confidence_calculator.estimate_summarization_confidence(
+            len(processed.combined_markdown), len(summary)
+        )
+    )
+    overall_confidence = (
+        refinement_dependencies.confidence_calculator.calculate_overall_confidence(
+            ocr_confidence=ocr_confidence,
+            summarization_confidence=summarization_confidence,
+            schema_matching_confidence=result.schema_matching_confidence,
+        )
+    )
+
+    confidence_scores = ConfidenceScores(
+        overall=overall_confidence,
+        ocr=ocr_confidence,
+        summarization=summarization_confidence,
+        schema_matching=result.schema_matching_confidence,
+        field_scores=result.field_scores,
+    )
+
     logger.info(
-        "Output",
+        "Output with confidence",
         json_schema=loaded_json_schema,
-        summary=summary,
-        output=output,
+        output=result.output,
         context=context,
+        confidence=confidence_scores.model_dump(),
     )
 
     return RefinedUploadResponse(
         filename=file.filename,
         summary=summary,
         json_schema=loaded_json_schema,
-        output=output,
+        output=result.output,
         context=context,
+        confidence=confidence_scores,
     )
 
 
@@ -336,17 +456,47 @@ async def refine_s3(
     )
     logger.info("Summary", summary=summary)
 
-    output = refinement_dependencies.structured_output_processor.process(
+    # Use the confidence-aware processor
+    context_prompt = ContextPrompt(context=request.context) if request.context else None
+    result = refinement_dependencies.structured_output_with_confidence_processor.process_with_confidence(
         request.json_schema,
         summary,
-        context=request.context,
+        context=context_prompt,
     )
+
+    # Calculate confidence scores
+    ocr_confidence = (
+        refinement_dependencies.confidence_calculator.estimate_ocr_confidence(
+            len(processed.combined_markdown), len(processed.pages)
+        )
+    )
+    summarization_confidence = (
+        refinement_dependencies.confidence_calculator.estimate_summarization_confidence(
+            len(processed.combined_markdown), len(summary)
+        )
+    )
+    overall_confidence = (
+        refinement_dependencies.confidence_calculator.calculate_overall_confidence(
+            ocr_confidence=ocr_confidence,
+            summarization_confidence=summarization_confidence,
+            schema_matching_confidence=result.schema_matching_confidence,
+        )
+    )
+
+    confidence_scores = ConfidenceScores(
+        overall=overall_confidence,
+        ocr=ocr_confidence,
+        summarization=summarization_confidence,
+        schema_matching=result.schema_matching_confidence,
+        field_scores=result.field_scores,
+    )
+
     logger.info(
-        "Output",
+        "Output with confidence",
         json_schema=request.json_schema,
-        summary=summary,
-        output=output,
+        output=result.output,
         context=request.context,
+        confidence=confidence_scores.model_dump(),
     )
 
     return RefinedS3Response(
@@ -354,6 +504,7 @@ async def refine_s3(
         key=request.key,
         summary=summary,
         json_schema=request.json_schema,
-        output=output,
+        output=result.output,
         context=request.context,
+        confidence=confidence_scores,
     )
