@@ -83,7 +83,7 @@ class MistralOcrProcessor(OcrProcessor):
 
     def process_file(self, file: File) -> OcrResult:
         # Upload the file
-        uploaded_file_response = self.mistral_client.files.upload_async(
+        uploaded_file_response = self.mistral_client.files.upload(
             file={
                 "file_name": file.filename,
                 "content": file.file.read(),
